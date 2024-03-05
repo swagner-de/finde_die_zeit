@@ -6,9 +6,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 
-import os
-from os.path import basename
-
 import logging
 from pathlib import Path
 import signal
@@ -128,13 +125,14 @@ def get_download_urls(session: requests.Session, release_home_url: str, formats:
     LOG.debug(f'Found download URLs {url_map}')
     return url_map
 
-def fetch_file(session: requests.Session, url: str, release_name: str, format: str):
+def fetch_file(session: requests.Session, url: str, release_name: str, format: str, library_path: Path):
     local_filename = f'{release_name}.{format}'.replace(' ', '_').replace('/', '-')
-    if os.path.isfile(local_filename):
+    local_file = library_path.joinpath(local_filename)
+    if local_file.exists():
         LOG.info(f'Skipping {local_filename} download, already downloaded')
-        return local_filename
+        return local_file
 
-    LOG.info(f'Downloading {url} > {local_filename}')
+    LOG.info(f'Downloading {url} > {local_file.as_posix()}')
     response = session.get(
         url=url,
         stream=True
@@ -142,37 +140,37 @@ def fetch_file(session: requests.Session, url: str, release_name: str, format: s
 
     if response.status_code != 200:
         return False
-    with open(local_filename, 'wb') as f:
+    with local_file.open('wb') as f:
         for chunk in response.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
-    return local_filename
+    return local_file
 
 def logout(session: requests.Session):
     url = 'https://meine.zeit.de/abmelden?url=https%3A//premium.zeit.de/'
     LOG.debug('Logging out')
     session.get(url)
 
-def send_mail(send_from:str, send_to: List[str], file: str,
+def send_mail(send_from:str, send_to: List[str], file: Path,
               server:str, port: int,
               smtp_user:str, smtp_password:str, start_tls= True):
     
-    LOG.info(f'Sending file {file} to {send_to}')
+    LOG.info(f'Sending file {file.name} to {send_to}')
 
     msg = MIMEMultipart()
     msg['From'] = send_from
     msg['To'] = COMMASPACE.join(send_to)
     msg['Date'] = formatdate(localtime=True)
-    msg['Subject'] = basename(file)
+    msg['Subject'] = file.name
 
-    msg.attach(MIMEText(basename(file)))
+    msg.attach(MIMEText(file.name))
 
-    with open(file, "rb") as f:
+    with file.open("rb") as f:
         part = MIMEApplication(
             f.read(),
-            Name=basename(file)
+            Name=file.name
         )
-        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(file)
+        part['Content-Disposition'] = 'attachment; filename="%s"' % file.name
         msg.attach(part)
 
     smtp = smtplib.SMTP(server, port)
@@ -207,22 +205,21 @@ def add_sent(filename: str, recipients: List[str], history_file: Path):
     with history_file.open('w') as f:
         yaml.dump(history, f)
 
-def send_email_if_not_done_already(history_file: Path, filename: str, recipients: List[str], send_from:str,
+def send_email_if_not_done_already(history_file: Path, file: Path, recipients: List[str], send_from:str,
                                    smtp_server:str, smtp_port: int,
                                    smtp_user:str, smtp_password:str, start_tls= True,
                                    force_send=False):
     recipients = set(recipients)
-    not_sent = check_if_sent(filename, recipients, history_file)
-    
+    not_sent = check_if_sent(file.name, recipients, history_file)
     if force_send:
-        LOG.info(f'Always sending {filename} email to {recipients}, already sent to {recipients - not_sent}')
+        LOG.info(f'Always sending {file.name} email to {recipients}, already sent to {recipients - not_sent}')
     else:
         if not not_sent:
-            LOG.info(f'Already sent {filename} email to {recipients}')
+            LOG.info(f'Already sent {file.name} email to {recipients}')
             return
         recipients = not_sent
-    send_mail(send_from, recipients, filename, smtp_server, smtp_port, smtp_user, smtp_password, start_tls)
-    add_sent(filename, recipients, history_file)
+    send_mail(send_from, recipients, file, smtp_server, smtp_port, smtp_user, smtp_password, start_tls)
+    add_sent(file.name, recipients, history_file)
         
 @click.group()
 @click.option('--email', type=str, required=True,
@@ -233,12 +230,17 @@ def send_email_if_not_done_already(history_file: Path, filename: str, recipients
               required=True, help='Format to download')
 @click.option('--log-level', type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']),
               default='INFO', help='Log level')
+@click.option('--library-path', type=click.Path(dir_okay=True, file_okay=False), required=True,
+              default='Die_Zeit', help='Path to library')
 @click.pass_context
 def group(ctx, **kwargs):
     LOG.setLevel(kwargs.pop('log_level'))
     ctx.ensure_object(dict)
+    library_path = kwargs['library_path'] = Path(kwargs['library_path'])
+    if not library_path.exists():
+        library_path.mkdir()
     ctx.obj.update(kwargs)
-
+    
 
 @group.command()
 @click.option('--release-date', type=click.DateTime(formats=["%Y-%m-%d", "%d.%m.%Y"]),
@@ -256,12 +258,14 @@ def now(ctx, **kwargs):
     _download(**kwargs)
 
 
-def _download(email: str, password:str, format: List[str], release_date: datetime, previous_release: int):
+def _download(email: str, password:str, format: List[str], release_date: datetime, previous_release: int,
+              library_path: Path):
     session = requests.Session()
     login(session, email, password)
     release_url, release_name = get_release(session, previous_release)
     download_urls = get_download_urls(session, release_url, format)
-    local_filenames = [fetch_file(session, url, release_name, format) for format, url in download_urls.items()]
+    local_filenames = [fetch_file(session, url, release_name, format, library_path)
+                       for format, url in download_urls.items()]
     logout(session)
     return local_filenames
 
@@ -289,8 +293,9 @@ def _wait_for_next_release(interval: int, file_handler_func: Optional[Callable] 
     while not TERMINATE.is_set():
         files = _download(**kwargs)
         for file in files:
-            LOG.debug(f'Calling file handler function with {file}')
-            file_handler_func(filename=file, **file_handler_args)
+            if file_handler_func:
+                LOG.debug(f'Calling file handler function with {file}')
+                file_handler_func(file=file, **file_handler_args)
         LOG.info(f'Waiting {wait} seconds')
         TERMINATE.wait(wait)
 
