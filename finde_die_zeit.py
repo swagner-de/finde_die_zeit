@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from datetime import datetime
+import datetime
 
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -195,7 +195,7 @@ def check_if_sent(filename: str, recipients: List[str], history_file: Path):
 
 
 def add_sent(filename: str, recipients: List[str], history_file: Path):
-    now =  datetime.utcnow().isoformat()
+    now =  datetime.datetime.now(datetime.UTC)
     if history_file.exists():
         with history_file.open('r') as f:
             history = yaml.safe_load(f)
