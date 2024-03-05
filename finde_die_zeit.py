@@ -185,7 +185,7 @@ def send_mail(send_from:str, send_to: List[str], file: str,
 def check_if_sent(filename: str, recipients: List[str], history_file: Path):
     remaining = []
     if not history_file.exists():
-        return False
+        return set(recipients)
     with history_file.open('r') as f:
         history = yaml.safe_load(f)
     for recipient in recipients:
