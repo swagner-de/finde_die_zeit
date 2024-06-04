@@ -16,6 +16,7 @@ from typing import Dict, List, Callable, Any, Optional
 
 
 import click
+from fake_useragent import UserAgent
 from lxml import html
 import requests
 import yaml
@@ -261,6 +262,8 @@ def now(ctx, **kwargs):
 def _download(email: str, password:str, format: List[str], release_date: datetime, previous_release: int,
               library_path: Path):
     session = requests.Session()
+    ua = UserAgent()
+    session.headers.update({'User-Agent': ua.random})
     login(session, email, password)
     release_url, release_name = get_release(session, previous_release)
     download_urls = get_download_urls(session, release_url, format)
