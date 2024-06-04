@@ -119,8 +119,8 @@ def get_download_urls(session: requests.Session, release_home_url: str, formats:
     for format in formats:
         if format not in url_map:
             LOG.error(f'Could not find download button for format {format}',
-                        f'Looked for {format} in button text {[x.text.lower() for x in download_buttons]}')
-            exit(1)
+                        f'Looked for {format} in button text '
+                        f'{", ".join(x.text.lower() for x in download_buttons)}')
 
     LOG.debug(f'Found download URLs {url_map}')
     return url_map
