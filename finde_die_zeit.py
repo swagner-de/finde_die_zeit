@@ -187,6 +187,8 @@ def check_if_sent(filename: str, recipients: List[str], history_file: Path):
         return set(recipients)
     with history_file.open('r') as f:
         history = yaml.safe_load(f)
+    if not history:
+        return set(recipients)
     for recipient in recipients:
          if not history.get(filename, {}).get(recipient, False):
              remaining.append(recipient)
@@ -198,6 +200,8 @@ def add_sent(filename: str, recipients: List[str], history_file: Path):
     if history_file.exists():
         with history_file.open('r') as f:
             history = yaml.safe_load(f)
+            if not history:
+                history = {}
     else:
         history = {}
     history.setdefault(filename, {})
