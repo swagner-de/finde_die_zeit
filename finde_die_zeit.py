@@ -4,7 +4,7 @@ import datetime
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
+from email.utils import COMMA, formatdate
 
 import logging
 from pathlib import Path
@@ -160,7 +160,7 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
 
     msg = MIMEMultipart()
     msg['From'] = send_from
-    msg['To'] = COMMASPACE.join(send_to)
+    msg['To'] = COMMA.join(send_to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = file.name
 
