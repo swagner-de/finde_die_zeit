@@ -4,7 +4,7 @@ import datetime
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
+from email.utils import formatdate
 
 import logging
 from pathlib import Path
@@ -152,7 +152,7 @@ def logout(session: requests.Session):
     LOG.debug('Logging out')
     session.get(url)
 
-def send_mail(send_from:str, send_to: List[str], file: Path,
+def send_mail(send_from:str, send_to: str, file: Path,
               server:str, port: int,
               smtp_user:str, smtp_password:str, start_tls= True):
     
@@ -160,7 +160,7 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
 
     msg = MIMEMultipart()
     msg['From'] = send_from
-    msg['To'] = COMMASPACE.join(send_to)
+    msg['To'] = send_to
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = file.name
 
@@ -169,7 +169,6 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
     with file.open("rb") as f:
         part = MIMEApplication(
             _data=f.read(),
-            _subtype='epub+zip',
         )
         part['Content-Disposition'] = 'attachment; filename="%s"' % file.name
         msg.attach(part)
@@ -181,21 +180,17 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
     smtp.send_message(msg)
     smtp.close()
 
-def check_if_sent(filename: str, recipients: List[str], history_file: Path):
-    remaining = []
+def is_sent(filename: str, recipient: str, history_file: Path):
     if not history_file.exists():
-        return set(recipients)
+        return False
     with history_file.open('r') as f:
         history = yaml.safe_load(f)
-    if not history:
-        return set(recipients)
-    for recipient in recipients:
-         if not history.get(filename, {}).get(recipient, False):
-             remaining.append(recipient)
-    return set(remaining)
+        if not history:
+            return False
+        return history.get(filename, {}).get(recipient, False)
+        
 
-
-def add_sent(filename: str, recipients: List[str], history_file: Path):
+def add_sent(filename: str, recipient: str, history_file: Path):
     now =  datetime.datetime.now(datetime.UTC)
     if history_file.exists():
         with history_file.open('r') as f:
@@ -205,8 +200,7 @@ def add_sent(filename: str, recipients: List[str], history_file: Path):
     else:
         history = {}
     history.setdefault(filename, {})
-    for recipient in recipients:
-        history[filename][recipient] = now
+    history[filename][recipient] = now
     with history_file.open('w') as f:
         yaml.dump(history, f)
 
@@ -214,18 +208,16 @@ def send_email_if_not_done_already(history_file: Path, file: Path, recipients: L
                                    smtp_server:str, smtp_port: int,
                                    smtp_user:str, smtp_password:str, start_tls= True,
                                    force_send=False):
-    recipients = set(recipients)
-    not_sent = check_if_sent(file.name, recipients, history_file)
-    if force_send:
-        LOG.info(f'Always sending {file.name} email to {recipients}, already sent to {recipients - not_sent}')
-    else:
-        if not not_sent:
-            LOG.info(f'Already sent {file.name} email to {recipients}')
-            return
-        recipients = not_sent
-    send_mail(send_from, recipients, file, smtp_server, smtp_port, smtp_user, smtp_password, start_tls)
-    add_sent(file.name, recipients, history_file)
-        
+    for recipient in set(recipients):
+        if force_send:
+            LOG.info(f'Always sending {file.name} email to {recipient}.')
+        else:
+            if is_sent(file.name, recipient, history_file):
+                LOG.info(f'Already sent {file.name} email to {recipient}')
+                continue
+            send_mail(send_from, recipient, file, smtp_server, smtp_port, smtp_user, smtp_password, start_tls)
+            add_sent(file.name, recipient, history_file)
+            
 @click.group()
 @click.option('--email', type=str, required=True,
         help='Email of your Zeit Premium account')
