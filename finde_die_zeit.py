@@ -4,7 +4,7 @@ import datetime
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import COMMA, formatdate
+from email.utils import COMMASPACE, formatdate
 
 import logging
 from pathlib import Path
@@ -160,7 +160,7 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
 
     msg = MIMEMultipart()
     msg['From'] = send_from
-    msg['To'] = COMMA.join(send_to)
+    msg['To'] = COMMASPACE.join(send_to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = file.name
 
@@ -168,8 +168,8 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
 
     with file.open("rb") as f:
         part = MIMEApplication(
-            f.read(),
-            Name=file.name
+            _data=f.read(),
+            _subtype='epub+zip',
         )
         part['Content-Disposition'] = 'attachment; filename="%s"' % file.name
         msg.attach(part)
@@ -178,7 +178,7 @@ def send_mail(send_from:str, send_to: List[str], file: Path,
     if start_tls:
         smtp.starttls()
     smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(send_from, send_to, msg.as_string())
+    smtp.send_message(msg)
     smtp.close()
 
 def check_if_sent(filename: str, recipients: List[str], history_file: Path):
