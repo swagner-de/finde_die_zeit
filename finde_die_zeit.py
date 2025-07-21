@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import datetime
 
 from email.mime.application import MIMEApplication
@@ -14,7 +15,7 @@ import sys
 from threading import Event
 from typing import Dict, List, Callable, Any, Optional
 
-
+from anticaptchaofficial.friendlycaptchaproxyless import *
 import click
 from fake_useragent import UserAgent
 from lxml import html
@@ -33,35 +34,63 @@ RELEASE_NAME_PREFIX = 'DIE ZEIT'
 
 TERMINATE = Event()
 
+def solve_captcha(anti_captcha_key: str, action_url: str, site_key: str, cookies) -> str:
+    solver = friendlyCaptchaProxyless()
+    solver.set_key(anti_captcha_key)
+    solver.set_website_url(action_url)
+    solver.set_website_key(site_key)
+    solver.set_cookies(cookies)
 
-def login(session: requests.Session, username: str, password: str):
-    headers =  {
-        'Content-Type': 'application/x-www-form-urlencoded',
-    }
+    LOG.debug(f'Solving captcha for {action_url} with site key {site_key}')
+    token = solver.solve_and_return_solution()
+    if token != 0:
+        LOG.debug(f'Solved captcha, got token {token}')
+        return token
+    else:
+        LOG.error(f'Error solving captcha: {solver.error_code}')
+        exit(1)
 
-    init_url = "https://epaper.zeit.de/abo/diezeit"
+def login(username: str, password: str, anti_captcha_api_key: str):
+    session = requests.Session()
+    session.headers.update({'User-Agent': UserAgent().random})
 
-    session.get(init_url)
-    LOG.debug(f'Forwarded to login paged, acquired cookies {session.cookies.get_dict()}')
+    init_url = "https://login.zeit.de/realms/zeit-online-public/protocol/openid-connect/auth?client_id=member&response_type=code&scope=openid&redirect_uri=https%3A%2F%2Fpremium.zeit.de"
 
-    form_data = (
-        ('email', username),
-        ('pass', password),
-        ('entry_service', 'premium'),
-        ('return_url', init_url),
-        ('entry_service', 'sonstige'),
-        ('product_id', 'sonstige'),
-        ('csrf_token', session.cookies['csrf_token'])
+    response = session.get(init_url)
+    LOG.debug(f'Forwarded to login paged with status code {response.status_code}')
 
-    )
-    LOG.debug('Logging in')
-    session.post('https://meine.zeit.de/anmelden', headers=dict(Origin=init_url, **headers), data=form_data)
-    LOG.debug(f'Logged in, acquired cookies {session.cookies.get_dict()}')
+    tree = html.fromstring(response.text)
+    form = tree.xpath('//form[@id="kc-form-login"]')[0]
+
+    site_key = form.xpath('.//div[contains(@class, "frc-captcha")]/@data-sitekey')[0]
+
+    action_url = form.attrib.get("action")
+    if action_url.startswith("/"):
+        action_url = "https://login.zeit.de" + action_url
+    LOG.debug(f'Action URL for login form: {action_url}')
+
+    form_data = {}
+    for input_tag in form.xpath('.//input'):
+        name = input_tag.attrib.get("name")
+        value = input_tag.attrib.get("value", "")
+        if name:
+            form_data[name] = value
+
+    form_data["username"] = username
+    form_data["password"] = password
+    form_data["rememberMe"] = "on"
+
+    form_data["frc-captcha-response"] = solve_captcha(anti_captcha_api_key, action_url, site_key, session.cookies.get_dict())
+    LOG.debug(f'Solved captcha, solution added to form data: {form_data["frc-captcha-response"]}')
+
+    LOG.info('Got captcha solution, submitting login form')
+    session.post(action_url, data=form_data, headers={'Content-Type': 'application/x-www-form-urlencoded',})
     if not any(c.startswith('zeit_sso_session') for c in session.cookies.get_dict().keys()):
         LOG.error(f'SSO cookie not found, login failed. Expected cookie starting with "zeit_sso_session", got '
                   f'{session.cookies.get_dict().keys()}')
         exit(1)
-        
+    LOG.info('Login successful, got zeit_sso_session cookie')
+    return session
 
 def get_release(session: requests.Session, release: int):
     url = "https://epaper.zeit.de/abo/diezeit"
@@ -95,6 +124,25 @@ def get_release(session: requests.Session, release: int):
         return current_release_url, current_release_name
 
     raise NotImplementedError('Previous release not implemented yet')
+
+def check_logged_in(session: requests.Session) -> bool:
+    """Check if the session is logged in by looking for the zeit_sso_session cookie"""
+    
+    if not any(c.startswith('zeit_sso_session') for c in session.cookies.get_dict().keys()):
+        LOG.info('No zeit_sso_session cookie found, not logged in')
+        return False
+    response = session.get('https://epaper.zeit.de')
+    if response.status_code == 200:
+        LOG.info('Tried to access https://epaper.zeit.de, got 200 OK')
+        page = html.fromstring(response.text)
+        xpath_current_release_div = f'//div[a[contains(text(), "{CURRENT_RELEASE_URL_BUTTON_TEXT}")]]'
+        current_release_div = page.xpath(xpath_current_release_div) 
+        if not current_release_div:
+            LOG.info(f'Got 200 when verifying login, but could not find current release div with xpath "{xpath_current_release_div}"')
+            return False
+        return True
+    LOG.debug(f'Tried to access https://epaper.zeit.de, got {response.status_code} {response.reason}')
+    return False
 
 def get_download_urls(session: requests.Session, release_home_url: str, formats: List[str]) -> Dict[str, str]:
     base_url = f'https://epaper.zeit.de'
@@ -146,11 +194,6 @@ def fetch_file(session: requests.Session, url: str, release_name: str, format: s
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
     return local_file
-
-def logout(session: requests.Session):
-    url = 'https://meine.zeit.de/abmelden?url=https%3A//premium.zeit.de/'
-    LOG.debug('Logging out')
-    session.get(url)
 
 def send_mail(send_from:str, send_to: str, file: Path,
               server:str, port: int,
@@ -229,6 +272,7 @@ def send_email_if_not_done_already(history_file: Path, file: Path, recipients: L
               default='INFO', help='Log level')
 @click.option('--library-path', type=click.Path(dir_okay=True, file_okay=False), required=True,
               default='Die_Zeit', help='Path to library')
+@click.option('--anti-captcha-api-key', type=str, default=None,)
 @click.pass_context
 def group(ctx, **kwargs):
     LOG.setLevel(kwargs.pop('log_level'))
@@ -244,6 +288,8 @@ def group(ctx, **kwargs):
               help='Use a release date instead of a relase number')
 @click.option('--previous-release', type=click.IntRange(0, 52),
               help='Download the nth release from the current one, the current one is 0' )
+@click.option('--session-file', type=click.Path(dir_okay=False, file_okay=True),
+              required=False, help='Path to session file, will be created if not exists')
 @click.pass_context
 def now(ctx, **kwargs):
     """Download the Zeit epaper right here, right now"""
@@ -256,16 +302,39 @@ def now(ctx, **kwargs):
 
 
 def _download(email: str, password:str, format: List[str], release_date: datetime, previous_release: int,
-              library_path: Path):
+              library_path: Path, anti_captcha_api_key: str, session_file: Optional[Path] = None):
+    
     session = requests.Session()
-    ua = UserAgent()
-    session.headers.update({'User-Agent': ua.random})
-    login(session, email, password)
+    if restored_session := session_file and session_file.exists():
+        LOG.debug(f'Loading session from {session_file}')
+        data = yaml.safe_load(session_file.read_text())
+        if not data:
+            data = {}
+            LOG.warning(f'Session file {session_file} is empty, logging in again')
+            restored_session = False
+        headers = data.get('headers', {})
+        cookies = data.get('cookies', {})
+        session.cookies.update(requests.utils.cookiejar_from_dict(cookies))
+        session.headers.update(headers)
+
+    if not restored_session or not check_logged_in(session):
+        LOG.info('Session not restored or not logged in, logging in now')
+        if restored_session:
+            session_file.unlink()
+        session = login(email, password, anti_captcha_api_key)
+            
     release_url, release_name = get_release(session, previous_release)
     download_urls = get_download_urls(session, release_url, format)
     local_filenames = [fetch_file(session, url, release_name, format, library_path)
                        for format, url in download_urls.items()]
-    logout(session)
+    if session_file:
+        LOG.info(f'Saving session to {session_file}')
+        yaml_data = yaml.safe_dump({
+            'headers': dict(session.headers),
+            'cookies': dict(requests.utils.dict_from_cookiejar(session.cookies))
+        })
+        with session_file.open('wb') as f:
+            f.write(yaml_data.encode())
     return local_filenames
 
 def sig_received(signo, _frame):
@@ -332,6 +401,9 @@ def wait_for_next_release_and_send(ctx, interval: int, **kwargs):
     a list of kindle emails"""
 
     kwargs['history_file'] = Path(kwargs['history_file'])
+
+    if os.environ.get('FINDE_DIE_ZEIT_SESSION_FILE'):
+        ctx.obj['session_file'] = Path(os.environ['FINDE_DIE_ZEIT_SESSION_FILE'])
 
     if not kwargs['smtp_user']:
         kwargs['smtp_user'] = kwargs['send_from']
