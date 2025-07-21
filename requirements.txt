@@ -3,3 +3,4 @@ requests
 lxml
 pyaml
 fake-useragent
+anticaptchaofficial
