@@ -1,6 +1,6 @@
 [project]
 name = "finde-die-zeit"
-version = "2.0.2"
+version = "2.1.0"
 description = "Download and send DIE ZEIT ePaper editions automatically"
 readme = "README.md"
 license = "MIT"

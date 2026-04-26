@@ -4,7 +4,7 @@ description: Download and send DIE ZEIT ePaper editions automatically
 type: application
 version: 0.1.0
 # renovate: image=ghcr.io/swagner-de/finde_die_zeit
-appVersion: 'v2.0.2'
+appVersion: 'v2.1.0'
 sources:
   - https://github.com/swagner-de/finde_die_zeit
 dependencies:
