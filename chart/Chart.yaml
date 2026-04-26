@@ -1,0 +1,16 @@
+apiVersion: v2
+name: finde-die-zeit
+description: Download and send DIE ZEIT ePaper editions automatically
+type: application
+version: 0.1.0
+# renovate: image=ghcr.io/swagner-de/finde_die_zeit
+appVersion: 'v2.0.2'
+sources:
+  - https://github.com/swagner-de/finde_die_zeit
+dependencies:
+  - name: common
+    version: 4.6.2
+    repository: https://bjw-s-labs.github.io/helm-charts/
+maintainers:
+  - name: swagner-de
+    email: swagner-de@users.noreply.github.com

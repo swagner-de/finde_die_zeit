@@ -1,0 +1,36 @@
+# -- Plain environment variables passed to the container
+env: {}
+  # FINDE_DIE_ZEIT_FORMAT: "epub"
+  # FINDE_DIE_ZEIT_LIBRARY_PATH: "/data/library"
+  # FINDE_DIE_ZEIT_LOG_LEVEL: "INFO"
+  # FINDE_DIE_ZEIT_RECIPIENTS: "user@kindle.com"
+  # FINDE_DIE_ZEIT_SEND_FROM: "sender@example.com"
+  # FINDE_DIE_ZEIT_SMTP_SERVER: "smtp.example.com"
+  # FINDE_DIE_ZEIT_SMTP_PORT: "587"
+  # FINDE_DIE_ZEIT_SMTP_STARTTLS: "1"
+  # FINDE_DIE_ZEIT_SESSION_FILE: "/data/config/session.yaml"
+
+# -- Sensitive environment variables stored in a Kubernetes Secret
+# Ignored when existingSecret is set
+secretEnv: {}
+  # FINDE_DIE_ZEIT_EMAIL: ""
+  # FINDE_DIE_ZEIT_PASSWORD: ""
+  # FINDE_DIE_ZEIT_ANTI_CAPTCHA_API_KEY: ""
+  # FINDE_DIE_ZEIT_SMTP_PASSWORD: ""
+
+# -- Existing secret containing environment variables as keys
+# When set, the chart will not create its own secret
+existingSecret: ""
+
+# -- Persistent storage configuration
+persistence:
+  # -- Library volume for downloaded ePaper files
+  library:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteOnce
+  # -- Config volume for session and history files
+  config:
+    enabled: true
+    size: 100Mi
+    accessMode: ReadWriteOnce
