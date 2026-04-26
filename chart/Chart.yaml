@@ -2,7 +2,7 @@ apiVersion: v2
 name: finde-die-zeit
 description: Download and send DIE ZEIT ePaper editions automatically
 type: application
-version: 0.1.0
+version: 0.1.1
 # renovate: image=ghcr.io/swagner-de/finde_die_zeit
 appVersion: 'v2.1.0'
 sources:
