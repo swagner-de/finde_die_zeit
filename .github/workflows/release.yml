@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency: release
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10
+        with:
+          github_token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Bump chart version
+        if: steps.release.outputs.released == 'true'
+        run: |
+          CHART_FILE="chart/Chart.yaml"
+          CURRENT=$(grep -E '^version: ' "$CHART_FILE" | sed 's/version: //')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          sed -i "s/^version: $CURRENT/version: $NEW/" "$CHART_FILE"
+          echo "Bumped chart version: $CURRENT -> $NEW"
+
+      - name: Push chart version bump
+        if: steps.release.outputs.released == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add chart/Chart.yaml
+          git diff --staged --quiet || git commit -m "chore: bump chart version" && git push
