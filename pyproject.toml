@@ -29,7 +29,7 @@ version_toml = ["pyproject.toml:project.version"]
 version_variables = ["chart/Chart.yaml:appVersion:tf"]
 branch = "main"
 changelog_file = "CHANGELOG.md"
-build_command = false
+build_command = ""
 tag_format = "v{version}"
 
 [project.urls]
