@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
+import logging
 import os
+import signal
+import smtplib
+import sys
 from datetime import datetime, timezone
-
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-
-import logging
 from pathlib import Path
-import signal
-import smtplib
-import sys
 from threading import Event
-from typing import Dict, List, Callable, Any, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-from anticaptchaofficial.friendlycaptchaproxyless import *
 import click
-from fake_useragent import UserAgent
-from lxml import html
 import requests
 import yaml
+from anticaptchaofficial.friendlycaptchaproxyless import friendlyCaptchaProxyless
+from fake_useragent import UserAgent
+from lxml import html
 
 LOG = logging.getLogger(__name__)
 formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
@@ -48,7 +46,7 @@ def solve_captcha(anti_captcha_key: str, action_url: str, site_key: str, cookies
         return token
     else:
         LOG.error(f'Error solving captcha: {solver.error_code}')
-        exit(1)
+        sys.exit(1)
 
 def login(username: str, password: str, anti_captcha_api_key: str):
     session = requests.Session()
@@ -88,46 +86,46 @@ def login(username: str, password: str, anti_captcha_api_key: str):
     if not any(c.startswith('zeit_sso_session') for c in session.cookies.get_dict().keys()):
         LOG.error(f'SSO cookie not found, login failed. Expected cookie starting with "zeit_sso_session", got '
                   f'{session.cookies.get_dict().keys()}')
-        exit(1)
+        sys.exit(1)
     LOG.info('Login successful, got zeit_sso_session cookie')
     return session
 
 def get_release(session: requests.Session, release: int):
     url = "https://epaper.zeit.de/abo/diezeit"
     search_results = session.get(url)
-    
+
     page = html.fromstring(search_results.text)
     xpath_release_name = f'*[starts-with(text(), "{RELEASE_NAME_PREFIX}")]/text()'
-    
+
     def found_not_one(result, error_msg, unique=False):
         if unique:
             result = set(result)
         if not result:
             LOG.error(f'Could not find {error_msg}')
-            exit(1)
+            sys.exit(1)
         if len(result) > 1:
             LOG.error(f'Found multiple {error_msg}')
-            exit(1)
+            sys.exit(1)
         return result.pop()
-    
+
     if release == 0:
         xpath_current_release_div = f'//div[a[contains(text(), "{CURRENT_RELEASE_URL_BUTTON_TEXT}")]]'
         current_release_div = page.xpath(xpath_current_release_div)
         current_release_div = found_not_one(current_release_div,
                                             f'<div> with <a> containing text {xpath_current_release_div}')
-        
+
         current_release_url = found_not_one(current_release_div.xpath('./a/@href'),
                                             'a/href in <div> of current release', unique=True)
 
         current_release_name = found_not_one(current_release_div.xpath(f'.//{xpath_release_name}'),
-                                            f'{xpath_release_name} in <div> of current release', unique=True)                                                
+                                            f'{xpath_release_name} in <div> of current release', unique=True)
         return current_release_url, current_release_name
 
     raise NotImplementedError('Previous release not implemented yet')
 
 def check_logged_in(session: requests.Session) -> bool:
     """Check if the session is logged in by looking for the zeit_sso_session cookie"""
-    
+
     if not any(c.startswith('zeit_sso_session') for c in session.cookies.get_dict().keys()):
         LOG.info('No zeit_sso_session cookie found, not logged in')
         return False
@@ -136,7 +134,7 @@ def check_logged_in(session: requests.Session) -> bool:
         LOG.info('Tried to access https://epaper.zeit.de, got 200 OK')
         page = html.fromstring(response.text)
         xpath_current_release_div = f'//div[a[contains(text(), "{CURRENT_RELEASE_URL_BUTTON_TEXT}")]]'
-        current_release_div = page.xpath(xpath_current_release_div) 
+        current_release_div = page.xpath(xpath_current_release_div)
         if not current_release_div:
             LOG.info(f'Got 200 when verifying login, but could not find current release div with xpath "{xpath_current_release_div}"')
             return False
@@ -145,14 +143,14 @@ def check_logged_in(session: requests.Session) -> bool:
     return False
 
 def get_download_urls(session: requests.Session, release_home_url: str, formats: List[str]) -> Dict[str, str]:
-    base_url = f'https://epaper.zeit.de'
+    base_url = 'https://epaper.zeit.de'
     resp = session.get(f'{base_url}{release_home_url}')
     page = html.fromstring(resp.text)
     download_buttons_xpath = '//div[@class="download-buttons"]/a'
     download_buttons = page.xpath(download_buttons_xpath)
     if not download_buttons:
         LOG.error(f'Could not find any download buttons with xpath "{download_buttons_xpath}"')
-        exit(1)
+        sys.exit(1)
 
     url_map = dict()
     for button in download_buttons:
@@ -167,7 +165,7 @@ def get_download_urls(session: requests.Session, release_home_url: str, formats:
 
     for format in formats:
         if format not in url_map:
-            LOG.error(f'Could not find download button for format {format}'
+            LOG.error(f'Could not find download button for format {format}. '
                       f'Looked for {format} in button text '
                       f'{", ".join(x.text.lower().strip() for x in download_buttons)}')
 
@@ -198,7 +196,7 @@ def fetch_file(session: requests.Session, url: str, release_name: str, format: s
 def send_mail(send_from:str, send_to: str, file: Path,
               server:str, port: int,
               smtp_user:str, smtp_password:str, start_tls= True):
-    
+
     LOG.info(f'Sending file {file.name} to {send_to}')
 
     msg = MIMEMultipart()
@@ -231,7 +229,7 @@ def is_sent(filename: str, recipient: str, history_file: Path):
         if not history:
             return False
         return history.get(filename, {}).get(recipient, False)
-        
+
 
 def add_sent(filename: str, recipient: str, history_file: Path):
     now = datetime.now(timezone.utc)
@@ -260,7 +258,7 @@ def send_email_if_not_done_already(history_file: Path, file: Path, recipients: L
                 continue
             send_mail(send_from, recipient, file, smtp_server, smtp_port, smtp_user, smtp_password, start_tls)
             add_sent(file.name, recipient, history_file)
-            
+
 @click.group()
 @click.option('--email', type=str, required=True,
         help='Email of your Zeit Premium account')
@@ -281,7 +279,7 @@ def group(ctx, **kwargs):
     if not library_path.exists():
         library_path.mkdir()
     ctx.obj.update(kwargs)
-    
+
 
 @group.command()
 @click.option('--release-date', type=click.DateTime(formats=["%Y-%m-%d", "%d.%m.%Y"]),
@@ -296,14 +294,14 @@ def now(ctx, **kwargs):
 
     if kwargs['release_date'] and kwargs['previous_release']:
         LOG.error('Please specify either --release-date or --previous-release, not both')
-        exit(1)
+        sys.exit(1)
     kwargs.update(ctx.obj)
     _download(**kwargs)
 
 
 def _download(email: str, password:str, format: List[str], release_date: datetime, previous_release: int,
               library_path: Path, anti_captcha_api_key: str, session_file: Optional[Path] = None):
-    
+
     session = requests.Session()
     if restored_session := session_file and session_file.exists():
         LOG.debug(f'Loading session from {session_file}')
@@ -322,7 +320,7 @@ def _download(email: str, password:str, format: List[str], release_date: datetim
         if restored_session:
             session_file.unlink()
         session = login(email, password, anti_captcha_api_key)
-            
+
     release_url, release_name = get_release(session, previous_release)
     download_urls = get_download_urls(session, release_url, format)
     local_filenames = [fetch_file(session, url, release_name, format, library_path)
@@ -353,8 +351,8 @@ def wait_for_next_release(ctx, interval: int, **kwargs):
 def _wait_for_next_release(interval: int, file_handler_func: Optional[Callable] = None, file_handler_args: Dict[str, Any] = dict(),
                            **kwargs):
     for sig in ('SIGTERM', 'SIGHUP', 'SIGINT'):
-        signal.signal(getattr(signal, sig), sig_received);
-    
+        signal.signal(getattr(signal, sig), sig_received)
+
     kwargs['previous_release'] = 0
     kwargs['release_date'] = None
     wait = interval*60*60
