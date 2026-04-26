@@ -1,0 +1,85 @@
+{{- define "hardcoded" -}}
+
+defaultPodOptions:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    fsGroupChangePolicy: OnRootMismatch
+
+controllers:
+  main:
+    containers:
+      main:
+        enabled: true
+        securityContext:
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        image:
+          repository: ghcr.io/swagner-de/finde_die_zeit
+          tag: {{ .Chart.AppVersion | quote }}
+        args:
+        - "wait-for-next-release-and-send"
+        env:
+        {{- range $key, $value := .Values.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+        {{- end }}
+        {{- if or .Values.secretEnv .Values.existingSecret }}
+        envFrom:
+          - secretRef:
+              name: {{ .Values.existingSecret | default (printf "%s-finde-die-zeit" .Release.Name) }}
+        {{- end }}
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+        probes:
+          liveness: &probe
+            enabled: false
+          readiness: *probe
+          startup: *probe
+
+service:
+  main:
+    enabled: false
+
+ingress:
+  main:
+    enabled: false
+
+secrets:
+  secret:
+    enabled: {{ and (not .Values.existingSecret) (not (empty .Values.secretEnv)) }}
+    stringData:
+    {{- range $key, $value := .Values.secretEnv }}
+      {{ $key }}: {{ $value | quote }}
+    {{- end }}
+
+persistence:
+  library:
+    advancedMounts:
+      main:
+        main:
+        - path: /data/library
+
+  config:
+    advancedMounts:
+      main:
+        main:
+        - path: /data/config
+
+{{ end }}
+
+{{- $ctx := deepCopy . -}}
+{{- $_ := include "hardcoded" . | fromYaml | mergeOverwrite $ctx.Values -}}
+
+{{ include "bjw-s.common.loader.all" $ctx }}
