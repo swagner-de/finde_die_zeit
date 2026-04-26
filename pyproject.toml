@@ -1,0 +1,36 @@
+[project]
+name = "finde-die-zeit"
+version = "2.0.2"
+description = "Download and send DIE ZEIT ePaper editions automatically"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "anticaptchaofficial>=1.0.69",
+    "click>=8.3",
+    "fake-useragent>=2.2",
+    "lxml>=5.0",
+    "pyaml>=26.0",
+    "requests>=2.31",
+]
+
+[project.scripts]
+finde-die-zeit = "finde_die_zeit:group"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["finde_die_zeit"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["chart/Chart.yaml:appVersion:tf"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = false
+tag_format = "v{version}"
+
+[project.urls]
+Repository = "https://github.com/swagner-de/finde_die_zeit"
