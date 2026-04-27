@@ -126,7 +126,7 @@ services:
 ## Helm Chart
 
 ```bash
-helm install finde-die-zeit oci://ghcr.io/swagner-de/finde_die_zeit/finde-die-zeit \
+helm install finde-die-zeit oci://ghcr.io/swagner-de/charts/finde-die-zeit \
   --set env.FINDE_DIE_ZEIT_FORMAT="epub" \
   --set env.FINDE_DIE_ZEIT_LIBRARY_PATH="/data/library" \
   --set env.FINDE_DIE_ZEIT_RECIPIENTS="user@kindle.com" \
@@ -142,7 +142,7 @@ helm install finde-die-zeit oci://ghcr.io/swagner-de/finde_die_zeit/finde-die-ze
 Sensitive values are stored in a Kubernetes Secret. To use an existing secret instead:
 
 ```bash
-helm install finde-die-zeit oci://ghcr.io/swagner-de/finde_die_zeit/finde-die-zeit \
+helm install finde-die-zeit oci://ghcr.io/swagner-de/charts/finde-die-zeit \
   --set existingSecret="my-secret" \
   --set env.FINDE_DIE_ZEIT_FORMAT="epub" \
   ...

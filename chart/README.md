@@ -12,11 +12,11 @@ Download and send DIE ZEIT ePaper editions automatically
 ## Install
 
 ```bash
-helm install finde-die-zeit oci://ghcr.io/swagner-de/finde_die_zeit/finde-die-zeit \
-  --set env.FINDE_DIE_ZEIT_EMAIL="your@email.com" \
-  --set env.FINDE_DIE_ZEIT_PASSWORD="your-password" \
+helm install finde-die-zeit oci://ghcr.io/swagner-de/charts/finde-die-zeit \
   --set env.FINDE_DIE_ZEIT_FORMAT="epub" \
-  --set env.FINDE_DIE_ZEIT_ANTI_CAPTCHA_API_KEY="your-key"
+  --set secretEnv.FINDE_DIE_ZEIT_EMAIL="your@email.com" \
+  --set secretEnv.FINDE_DIE_ZEIT_PASSWORD="your-password" \
+  --set secretEnv.FINDE_DIE_ZEIT_ANTI_CAPTCHA_API_KEY="your-key"
 ```
 
 ## Requirements
