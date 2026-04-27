@@ -20,6 +20,11 @@
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "matchDepNames": ["ghcr.io/swagner-de/finde_die_zeit"],
+      "automerge": true,
+      "automergeType": "pr"
     }
   ],
   "customManagers": [
