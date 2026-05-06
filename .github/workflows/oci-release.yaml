@@ -24,7 +24,7 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Generate chart README
-        uses: losisin/helm-docs-github-action@v1
+        uses: losisin/helm-docs-github-action@v2
         with:
           chart-search-root: chart
           template-files: README.md.gotmpl
