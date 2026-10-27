@@ -1,17 +1,51 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+    types: [opened, synchronize, reopened, edited, ready_for_review]
 permissions:
   contents: read
-
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/ruff-action@v4.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: pip install ruff==0.15.20
+      - run: ruff check .
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: pip install .
+      # No credentials, login, CAPTCHA solving, or email sending in CI.
+      - run: finde-die-zeit --help
+      - run: python -m compileall -q finde_die_zeit.py
+  semantic:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: swagner-de/github-workflows/.github/workflows/semantic-pr.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
+  container:
+    uses: swagner-de/github-workflows/.github/workflows/container-check.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
+  chart:
+    uses: swagner-de/github-workflows/.github/workflows/chart-check.yaml@347fdca05a9438d302e66a52e2f0ad2b6e1df1ba
+    with:
+      chart-path: chart
+      image-repository: ghcr.io/swagner-de/finde_die_zeit
+      helm-repositories: |
+        bjw-s https://bjw-s-labs.github.io/helm-charts/

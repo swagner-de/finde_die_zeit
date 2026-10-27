@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "ec8ec7fddd9753df5be134a5ebd596915d7d113b",
+  "always-update": true,
+  "separate-pull-requests": true,
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "finde-die-zeit",
+      "include-component-in-tag": false,
+      "exclude-paths": ["chart", ".github", "docs", "renovate.json"],
+      "changelog-sections": [
+        {"type": "feat", "section": "Features"},
+        {"type": "fix", "section": "Fixes"},
+        {"type": "perf", "section": "Performance"},
+        {"type": "revert", "section": "Reverts"}
+      ]
+    },
+    "chart": {
+      "release-type": "helm",
+      "component": "chart",
+      "include-component-in-tag": true,
+      "changelog-sections": [
+        {"type": "feat", "section": "Features"},
+        {"type": "fix", "section": "Fixes and application updates"},
+        {"type": "revert", "section": "Reverts"}
+      ]
+    }
+  }
+}

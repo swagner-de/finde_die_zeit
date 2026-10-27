@@ -6,7 +6,8 @@ RUN apt-get update && \
 
 FROM build AS build-venv
 COPY pyproject.toml finde_die_zeit.py /app/
-RUN /venv/bin/pip install --disable-pip-version-check /app
+RUN /venv/bin/pip install --disable-pip-version-check /app && \
+    /venv/bin/pip uninstall --yes pip setuptools wheel
 
 FROM gcr.io/distroless/python3-debian13
 COPY --from=build-venv /venv /venv
