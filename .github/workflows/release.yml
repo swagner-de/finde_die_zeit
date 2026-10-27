@@ -1,48 +1,41 @@
 name: Release
-
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write
-  issues: write
-  id-token: write
-
+permissions: {}
 jobs:
   release:
-    runs-on: ubuntu-latest
-    concurrency: release
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-
-      - name: Python Semantic Release
-        id: release
-        uses: python-semantic-release/python-semantic-release@v10
-        with:
-          github_token: ${{ secrets.RELEASE_TOKEN }}
-
-      - name: Bump chart version
-        if: steps.release.outputs.released == 'true'
-        run: |
-          CHART_FILE="chart/Chart.yaml"
-          CURRENT=$(grep -E '^version: ' "$CHART_FILE" | sed 's/version: //')
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
-          sed -i "s/^version: $CURRENT/version: $NEW/" "$CHART_FILE"
-          echo "Bumped chart version: $CURRENT -> $NEW"
-
-      - name: Push chart version bump
-        if: steps.release.outputs.released == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add chart/Chart.yaml
-          git diff --staged --quiet || git commit -m "chore: bump chart version" && git push
+    permissions:
+      contents: read
+    uses: swagner-de/github-workflows/.github/workflows/release-please.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
+    with:
+      chart-path: chart
+    secrets:
+      release-app-client-id: ${{ secrets.RELEASE_BOT_CLIENT_ID }}
+      release-app-private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+  image:
+    needs: release
+    if: needs.release.outputs.app-released == 'true'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    uses: swagner-de/github-workflows/.github/workflows/container-publish.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
+    with:
+      release-sha: ${{ needs.release.outputs.app-sha }}
+      version: ${{ needs.release.outputs.app-version }}
+  chart:
+    needs: release
+    if: needs.release.outputs.chart-released == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: swagner-de/github-workflows/.github/workflows/chart-publish.yaml@347fdca05a9438d302e66a52e2f0ad2b6e1df1ba
+    with:
+      chart-path: chart
+      release-sha: ${{ needs.release.outputs.chart-sha }}
+      version: ${{ needs.release.outputs.chart-version }}
+      image-repository: ghcr.io/swagner-de/finde_die_zeit
+      helm-repositories: |
+        bjw-s https://bjw-s-labs.github.io/helm-charts/
