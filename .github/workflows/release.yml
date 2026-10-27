@@ -2,12 +2,15 @@ name: Release
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
 permissions: {}
 jobs:
   release:
     permissions:
       contents: read
-    uses: swagner-de/github-workflows/.github/workflows/release-please.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
+    uses: swagner-de/github-workflows/.github/workflows/release-please.yaml@907827d2f8a3fa4e3e19ccfaaced8a566d5ee891
     with:
       chart-path: chart
     secrets:
