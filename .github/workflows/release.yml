@@ -24,7 +24,7 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-    uses: swagner-de/github-workflows/.github/workflows/container-publish.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
+    uses: swagner-de/github-workflows/.github/workflows/container-publish.yaml@b6e1470
     with:
       release-sha: ${{ needs.release.outputs.app-sha }}
       version: ${{ needs.release.outputs.app-version }}
