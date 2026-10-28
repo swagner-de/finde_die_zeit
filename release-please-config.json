@@ -12,6 +12,7 @@
       "changelog-sections": [
         {"type": "feat", "section": "Features"},
         {"type": "fix", "section": "Fixes"},
+        {"type": "chore", "scope": "deps", "section": "Dependencies", "hidden": false},
         {"type": "perf", "section": "Performance"},
         {"type": "revert", "section": "Reverts"}
       ]
@@ -24,6 +25,7 @@
       "changelog-sections": [
         {"type": "feat", "section": "Features"},
         {"type": "fix", "section": "Fixes and application updates"},
+        {"type": "chore", "scope": "deps", "section": "Dependencies", "hidden": false},
         {"type": "revert", "section": "Reverts"}
       ]
     }
