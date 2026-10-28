@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [2.1.1](https://github.com/swagner-de/finde_die_zeit/compare/v2.1.0...v2.1.1) (2026-10-28)
+
+
+### Fixes
+
+* **chart:** check documentation drift and sync release versions ([4620600](https://github.com/swagner-de/finde_die_zeit/commit/4620600e7313d340f5aa3df61e3df2def4f7b3f1))
+
+
+### Dependencies
+
+* **deps:** pin dependencies ([#26](https://github.com/swagner-de/finde_die_zeit/issues/26)) ([bada556](https://github.com/swagner-de/finde_die_zeit/commit/bada5568091e011b1c13744f3304aea0e214c2a0))
+* **deps:** update debian:13-slim docker digest to 89c1ea9 ([#30](https://github.com/swagner-de/finde_die_zeit/issues/30)) ([2f99aa1](https://github.com/swagner-de/finde_die_zeit/commit/2f99aa11dc8878b40149154125fd29286ddb7bab))
+
 ## v2.1.0 (2026-04-26)
 
 ### Bug Fixes
