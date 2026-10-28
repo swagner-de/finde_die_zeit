@@ -1,6 +1,7 @@
 # finde-die-zeit
 
-![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.1.0](https://img.shields.io/badge/AppVersion-v2.1.0-informational?style=flat-square)
+Chart version: 0.1.1 <!-- x-release-please-version -->
+![AppVersion: v2.1.0](https://img.shields.io/badge/AppVersion-v2.1.0-informational?style=flat-square)  ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 Download and send DIE ZEIT ePaper editions automatically
 
 ## Features
@@ -11,19 +12,22 @@ Download and send DIE ZEIT ePaper editions automatically
 
 ## Install
 
+<!-- x-release-please-start-version -->
 ```bash
-helm install finde-die-zeit oci://ghcr.io/swagner-de/finde_die_zeit/finde-die-zeit \
+helm install finde-die-zeit oci://ghcr.io/swagner-de/charts/finde-die-zeit \
+  --version 0.1.1 \
   --set env.FINDE_DIE_ZEIT_EMAIL="your@email.com" \
   --set env.FINDE_DIE_ZEIT_PASSWORD="your-password" \
   --set env.FINDE_DIE_ZEIT_FORMAT="epub" \
   --set env.FINDE_DIE_ZEIT_ANTI_CAPTCHA_API_KEY="your-key"
 ```
+<!-- x-release-please-end -->
 
 ## Requirements
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://bjw-s-labs.github.io/helm-charts/ | common | 4.6.2 |
+| https://bjw-s-labs.github.io/helm-charts/ | common | 5.3.0 |
 
 ## Values
 

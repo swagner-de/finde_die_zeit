@@ -43,9 +43,10 @@ jobs:
   container:
     uses: swagner-de/github-workflows/.github/workflows/container-check.yaml@b36d3219faa2493a567fd13586af9764ac493ab6
   chart:
-    uses: swagner-de/github-workflows/.github/workflows/chart-check.yaml@347fdca05a9438d302e66a52e2f0ad2b6e1df1ba
+    uses: swagner-de/github-workflows/.github/workflows/chart-check.yaml@8e365f34e5c3eb99d8144622cdb3ab8397145a18
     with:
       chart-path: chart
+      check-docs: true
       image-repository: ghcr.io/swagner-de/finde_die_zeit
       helm-repositories: |
         bjw-s https://bjw-s-labs.github.io/helm-charts/
