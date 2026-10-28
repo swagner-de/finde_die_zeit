@@ -1,5 +1,6 @@
 {{ template "chart.header" . }}
-{{ template "chart.badgesSection" . }}
+Chart version: {{ template "chart.version" . }} <!-- x-release-please-version -->
+{{ template "chart.appVersionBadge" . }} {{ template "chart.typeBadge" . }}
 {{ template "chart.description" . }}
 {{ template "chart.homepageLine" . }}
 
@@ -11,13 +12,16 @@
 
 ## Install
 
+<!-- x-release-please-start-version -->
 ```bash
-helm install {{ template "chart.name" . }} oci://ghcr.io/swagner-de/finde_die_zeit/{{ template "chart.name" . }} \
+helm install {{ template "chart.name" . }} oci://ghcr.io/swagner-de/charts/{{ template "chart.name" . }} \
+  --version {{ template "chart.version" . }} \
   --set env.FINDE_DIE_ZEIT_EMAIL="your@email.com" \
   --set env.FINDE_DIE_ZEIT_PASSWORD="your-password" \
   --set env.FINDE_DIE_ZEIT_FORMAT="epub" \
   --set env.FINDE_DIE_ZEIT_ANTI_CAPTCHA_API_KEY="your-key"
 ```
+<!-- x-release-please-end -->
 
 {{ template "chart.requirementsSection" . }}
 

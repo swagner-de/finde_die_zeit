@@ -19,6 +19,7 @@
     "chart": {
       "release-type": "helm",
       "component": "chart",
+      "extra-files": [{"type": "generic", "path": "README.md"}],
       "include-component-in-tag": true,
       "changelog-sections": [
         {"type": "feat", "section": "Features"},
