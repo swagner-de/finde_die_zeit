@@ -1,6 +1,6 @@
 # finde-die-zeit
 
-Chart version: 0.1.2 <!-- x-release-please-version -->
+Chart version: 0.1.3 <!-- x-release-please-version -->
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 Download and send DIE ZEIT ePaper editions automatically
 
@@ -15,7 +15,7 @@ Download and send DIE ZEIT ePaper editions automatically
 <!-- x-release-please-start-version -->
 ```bash
 helm install finde-die-zeit oci://ghcr.io/swagner-de/charts/finde-die-zeit \
-  --version 0.1.2 \
+  --version 0.1.3 \
   --set env.FINDE_DIE_ZEIT_EMAIL="your@email.com" \
   --set env.FINDE_DIE_ZEIT_PASSWORD="your-password" \
   --set env.FINDE_DIE_ZEIT_FORMAT="epub" \

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.3](https://github.com/swagner-de/finde_die_zeit/compare/chart-v0.1.2...chart-v0.1.3) (2026-11-05)
+
+
+### Fixes and application updates
+
+* prevent crashloop on expired session and chart docs drift ([1a14942](https://github.com/swagner-de/finde_die_zeit/commit/1a149426b9c48e8ade6383d2cdbd975ecc2cd7a4))
+
+
+### Dependencies
+
+* **deps:** update ghcr.io/swagner-de/finde_die_zeit docker tag to v2.1.1 ([#35](https://github.com/swagner-de/finde_die_zeit/issues/35)) ([d536de4](https://github.com/swagner-de/finde_die_zeit/commit/d536de493dce29c7d3d112faadef57098481a989))
+
 ## [0.1.2](https://github.com/swagner-de/finde_die_zeit/compare/chart-v0.1.1...chart-v0.1.2) (2026-10-28)
 
 
