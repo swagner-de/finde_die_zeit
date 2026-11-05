@@ -1,7 +1,7 @@
 # finde-die-zeit
 
 Chart version: 0.1.2 <!-- x-release-please-version -->
-![AppVersion: v2.1.0](https://img.shields.io/badge/AppVersion-v2.1.0-informational?style=flat-square)  ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 Download and send DIE ZEIT ePaper editions automatically
 
 ## Features
