@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## [2.1.2](https://github.com/swagner-de/finde_die_zeit/compare/v2.1.1...v2.1.2) (2026-11-05)
+
+
+### Fixes
+
+* prevent crashloop on expired session and chart docs drift ([1a14942](https://github.com/swagner-de/finde_die_zeit/commit/1a149426b9c48e8ade6383d2cdbd975ecc2cd7a4))
+
+
+### Dependencies
+
+* **deps:** update debian:13-slim docker digest to f6b08b0 ([#36](https://github.com/swagner-de/finde_die_zeit/issues/36)) ([4e106da](https://github.com/swagner-de/finde_die_zeit/commit/4e106dab2f709e21cf95f73d5101ba2ef95c82d4))
+
 ## [2.1.1](https://github.com/swagner-de/finde_die_zeit/compare/v2.1.0...v2.1.1) (2026-10-28)
 
 
