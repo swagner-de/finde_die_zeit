@@ -129,7 +129,19 @@ def check_logged_in(session: requests.Session) -> bool:
     if not any(c.startswith('zeit_sso_session') for c in session.cookies.get_dict().keys()):
         LOG.info('No zeit_sso_session cookie found, not logged in')
         return False
-    response = session.get('https://epaper.zeit.de')
+    try:
+        # Do not follow redirects: a stale session cookie makes epaper.zeit.de
+        # bounce to the SSO login (which bounces back), so a redirect here is
+        # itself the "not logged in" signal. Detecting it up front avoids the
+        # 30-redirect loop that otherwise raises TooManyRedirects and crashes
+        # the process. The except is a fallback for transient network errors.
+        response = session.get('https://epaper.zeit.de', allow_redirects=False)
+    except requests.exceptions.RequestException as e:
+        LOG.info(f'Failed to verify login against https://epaper.zeit.de, treating as not logged in: {e}')
+        return False
+    if response.is_redirect:
+        LOG.info(f'https://epaper.zeit.de redirected to {response.headers.get("Location")}, session expired, not logged in')
+        return False
     if response.status_code == 200:
         LOG.info('Tried to access https://epaper.zeit.de, got 200 OK')
         page = html.fromstring(response.text)
